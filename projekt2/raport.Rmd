@@ -1,0 +1,1107 @@
+---
+title: "Raport"
+author: "Michał Milewski"
+date: "5/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggpubr)
+source("./knn.R")
+```
+```{r fun, echo=FALSE}
+polr_bench <- data.frame(read.csv("./other_benchmarks/polr_benchmark.csv"),stringsAsFactors = FALSE) 
+random_forest_bench <- data.frame(read.csv("./other_benchmarks/random_forest_benchmark.csv"),stringsAsFactors = FALSE) 
+svm_bench <- data.frame(read.csv("./other_benchmarks/svm_benchmark.csv"),stringsAsFactors = FALSE) 
+
+draw_plots_ERR <- function(name){
+  knitr::opts_chunk$set(echo = TRUE)
+  knn_data <- data.frame(read.csv(sprintf("./knn_benchmarks/%s_benchmark.csv",name)),stringsAsFactors = FALSE)
+  knn_data$p <- as.factor(knn_data$p)  
+  pl <- ggplot(data = knn_data ,aes(x=k,y =ERR,colour =p))+geom_line() +geom_point()+ facet_wrap(~agregacja,ncol=2)
+  print(pl)
+}
+
+draw_plots_MSE <- function(name){
+  knitr::opts_chunk$set(echo = TRUE)
+  knn_data <- data.frame(read.csv(sprintf("./knn_benchmarks/%s_benchmark.csv",name)),stringsAsFactors = FALSE)
+  knn_data$p <- as.factor(knn_data$p)  
+  pl2 <- ggplot(data = knn_data ,aes(x=k,y =MSE,colour =p)) +geom_line()+geom_point()+ facet_wrap(~agregacja,ncol=2)
+  print(pl2)
+}
+
+draw_plots_MAD <- function(name){
+  knitr::opts_chunk$set(echo = TRUE)
+  knn_data <- data.frame(read.csv(sprintf("./knn_benchmarks/%s_benchmark.csv",name)),stringsAsFactors = FALSE)
+  knn_data$p <- as.factor(knn_data$p)  
+  pl3 <- ggplot(data = knn_data ,aes(x = k, y = MAD, colour = p)) +geom_line()+geom_point()+ facet_wrap(~agregacja,ncol=2)
+  print(pl3)
+}
+
+draw_table_other<- function(name){
+  dt <- data.frame(random_forest_bench[random_forest_bench$name == name,],stringsAsFactors = FALSE)
+  if(nrow(polr_bench[polr_bench$name == name,]) != 0)
+    dt[nrow(dt)+1,] <- polr_bench[polr_bench$name == name,]
+  dt[nrow(dt)+1,] <- svm_bench[svm_bench$name == name,]
+  if(nrow(dt) == 3){
+    dt$name <- c("randomForest","polr","svm")
+  }
+  else {
+    dt$name <- c("randomForest","svm")
+  }
+
+  ggpubr::ggtexttable(dt[,c("name","ERR","MAD","MSE")],rows = NULL,)
+}
+
+draw_plots <- draw_plots_ERR
+```
+
+## Wstęp
+Bierzący raport dotyczy porowniania działania funkcji knn z użyciem różnych funkcji agregujących etykiety oraz funkcji dostępnych jako gotowe metody. Testowane metody to **randomForest::randomForest** , **MASS:polr** i **e1071::svm**.
+
+## Zbiór danych *abalone*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("abalone")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("abalone")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że minimalnie można zaobserwować niższe błędy dla metryki L<sub>1</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("abalone")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy pozostałych funkcji są porownywalne z błędami knn dla k > 10 oraz użyciem funkcji agregującej *moda*.
+
+
+```{r , echo=FALSE}
+draw_table_other("abalone")
+```
+
+
+## Zbiór danych *abalone_ord*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("abalone_ord")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("abalone_ord")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("abalone_ord")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy pozostałych funkcji są porownywalne z błędami knn dla k > 10 oraz użyciem funkcji agregującej *moda*.
+
+
+```{r , echo=FALSE}
+draw_table_other("abalone_ord")
+```
+
+
+## Zbiór danych *affairs*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Wyjątkiem od tej reguły jest tu uzycie funkcji agregującej minkara 1.5, która to przy użyciu metryki L<sub>$\infty$</sub>, zaczyna maleć dla k > 3. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najlepsze wyniki oferuje funkcja *moda*.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("affairs")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *minkara1.5*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3, choć w przypadku funckji *srednia_wazona* jest on zdecydowanie łagodniejszy.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("affairs")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k, tak jest dla funkcji agregującej *moda*. Jednak dla innych funkji błąd dla k = 1 jest duży, a najmnijeszy dla k=3 i później rośnie. Najgwałtowniejszy spadek można zaobserwować dla k od 1 do 3. W tym przypadku moda cechuje się największym błędem średniokwadratowym. tu również widzimy oewne rozbieżności między błędami w przypadku uzycia różnych metryk. Metryka L<sub>$\infty$</sub> daje największe błędy w tym przypadku.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("affairs")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru błędy wszystkich użytych funkcji są porównywalne z nieznacznie mniejszymi przy funkcji *randomForest*
+
+
+```{r , echo=FALSE}
+draw_table_other("affairs")
+```
+
+
+## Zbiór danych *ailerons*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("ailerons")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k.W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("ailerons")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>, trochę wieksze dla L<sub>2</sub> i największe dla L<sub>$\infty$</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("ailerons")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy ERR pozostałych funkcji są porownywalne z błędami knn dla k > 10 oraz użyciem funkcji agregującej *moda*. Wszystkie te funkcje cechują zauważalnie mniejszymi błędami MAD i MSE.
+
+
+```{r , echo=FALSE}
+draw_table_other("ailerons")
+```
+
+
+## Zbiór danych *auto_ord*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Widać też że dla niektórych k zauważalnie zmnijesza się błąd dla metryki L<sub>1</sub>
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("auto_ord")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k.W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+
+```{r , echo=FALSE}
+draw_plots_MAD("auto_ord")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>, trochę wieksze dla L<sub>2</sub> i największe dla L<sub>$\infty$</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("auto_ord")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy ERR pozostałych funkcji są porownywalne z błędami knn dla k > 3 oraz użyciem funkcji agregującej *moda*. Wszystkie te funkcje cechują zauważalnie mniejszymi błędami MAD i MSE.
+
+
+```{r , echo=FALSE}
+draw_table_other("auto_ord")
+```
+
+
+## Zbiór danych *auto_riskness*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Wyjątkiem od tej reguły jest tu uzycie funkcji agregującej minkara 1.5, która to przy użyciu metryki L<sub>$\infty$</sub>, zaczyna maleć dla k > 5. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("auto_riskness")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3, choć w przypadku funckji *srednia_wazona* jest on zdecydowanie łagodniejszy. Nieznacze różnice również powodują uzyte metryki.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("auto_riskness")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku moda cechuje się największym błędem średniokwadratowym. tu również widzimy pewne rozbieżności między błędami w przypadku uzycia różnych metryk. Metryka L<sub>$\infty$</sub> daje największe błędy w tym przypadku.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("auto_riskness")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru funkcja *randomForest* cechuje się najmniejszymi błędami. Ciekawe jest że dla tej funkcji ERR, MAD i MSE są równe. Następnie funkjca *svm* ma wszystkie błędy o rząd większe od funkcji *randomForest*. Najgorsze wyniki w tym przypadku daje funkcja *polr*
+
+
+```{r , echo=FALSE}
+draw_table_other("auto_riskness")
+```
+
+
+## Zbiór danych *bostonhousing*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Widać też że dla niektórych k zauważalnie zmnijesza się błąd dla metryki L<sub>1</sub>
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("bostonhousing")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub> i odrobinę wyższe dla metryki L<sub>2</sub> i najwyższe dla L<sub>$\infty$</sub>. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+
+```{r , echo=FALSE}
+draw_plots_MAD("bostonhousing")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym i najłagodniejszym wzrostem w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>, trochę wieksze dla L<sub>2</sub> i największe dla L<sub>$\infty$</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("bostonhousing")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy ERR pozostałych funkcji są mnijesze od błędów knn dla k = 3 oraz większe niż dla 1-nn. Wszystkie te funkcje cechują zauważalnie mniejszymi błędami MAD i MSE.
+
+
+```{r , echo=FALSE}
+draw_table_other("bostonhousing")
+```
+
+
+## Zbiór danych *bostonhousing_ord*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Widać też że dla niektórych k zauważalnie zmnijesza się błąd dla metryki L<sub>1</sub>
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("bostonhousing_ord")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub> i odrobinę wyższe dla metryki L<sub>2</sub> i najwyższe dla L<sub>$\infty$</sub>. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+
+```{r , echo=FALSE}
+draw_plots_MAD("bostonhousing_ord")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym i najłagodniejszym wzrostem w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>, trochę wieksze dla L<sub>2</sub> i największe dla L<sub>$\infty$</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("bostonhousing_ord")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy ERR pozostałych funkcji są porównywalne do błędów knn dla k = 3 . Wszystkie te funkcje cechują zauważalnie mniejszymi błędami MAD i MSE.
+
+
+```{r , echo=FALSE}
+draw_table_other("bostonhousing_ord")
+```
+
+
+## Zbiór danych *californiahousing*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("californiahousing")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("californiahousing")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że minimalnie można zaobserwować niższe błędy dla metryki L<sub>1</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("californiahousing")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są mniejsze niż błędy knn dla k = 3 oraz większe niż błędy 1-nn. Niestety użycie funkcji *polr* było niemożliwe bez usuwania dodatkowych oprócz liniowo zależnych kolumn ze zbioru danych.
+
+
+```{r , echo=FALSE}
+draw_table_other("californiahousing")
+```
+
+
+## Zbiór danych *cement_strength*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("cement_strength")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("cement_strength")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać minimalnie niższe błędy dla metryki L<sub>1</sub> i L<sub>2</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>. Błędy dla tego zbioru rosną w bardziej płaski sposób niż w innych funkcjach.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("cement_strength")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędem knn dla k = 3. Niestety użycie funkcji *polr* dało najgorsze wyniki porównywalne z knn dla dużego k.
+
+
+```{r , echo=FALSE}
+draw_table_other("cement_strength")
+```
+
+
+## Zbiór danych *fireman_example*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("fireman_example")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("fireman_example")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub> i L<sub>2</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("fireman_example")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są mniejsze niż błędy knn dla k = 3 oraz większe niż błędy 1-nn. Niestety użycie funkcji *polr* dało najgorsze wyniki porownywalne z knn dla k>=3 dla funkcji moda.
+
+
+```{r , echo=FALSE}
+draw_table_other("fireman_example")
+```
+
+
+## Zbiór danych *glass*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji *minkara1.5* ,*moda*, *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 5. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>. Dla funckji *minkara3.0* i *srednia_a* wykresy są strome dla k od 1 do 3, a następnie już się spłaszczają.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("glass")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("glass")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmniejszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 5. W tym przypadku widać minimalnie niższe błędy dla metryki L<sub>1</sub> i L<sub>2</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("glass")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędem knn dla k = 3. Niestety użycie funkcji *polr* dało najgorsze wyniki porównywalne z knn dla dużego k.
+
+
+```{r , echo=FALSE}
+draw_table_other("glass")
+```
+
+
+## Zbiór danych *kinematics*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki dają funkcje *minkara3.0* i *srednia_a*, a najlepsze *moda*.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("kinematics")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>, a najlepsze dla metryki L<sub>1</sub>
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("kinematics")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać niższe błędy dla metryki L<sub>1</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("kinematics")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędem knn dla k = 3 dla agregacji np. *moda*. Niestety użycie funkcji *polr* dało najgorsze wyniki porównywalne z knn dla dużego k, a MSE i MAD w tym przypadku było nawet gorsze.
+
+
+```{r , echo=FALSE}
+draw_table_other("kinematics")
+```
+
+
+## Zbiór danych *machine_ord*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Widać też że dla niektórych k zauważalnie zmnijesza się błąd dla metryki L<sub>1</sub>
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("machine_ord")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub> i odrobinę wyższe dla metryki L<sub>2</sub> i najwyższe dla L<sub>$\infty$</sub>. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+
+```{r , echo=FALSE}
+draw_plots_MAD("machine_ord")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących, z wyjątkiem funkcji *moda*, która ma duże wahania w wartości. Ciekawe jest to że najmnijeszym błędem średniokwadratowym i najłagodniejszym wzrostem w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Błąd wzrasta łagodniej niż w przypadku pozostałych zbiorów. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>, trochę wieksze dla L<sub>2</sub> i największe dla L<sub>$\infty$</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("machine_ord")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędami knn dla k = 3. Niestety użycie funkcji *polr* było niemożliwe bez usuwania dodatkowych oprócz liniowo zależnych kolumn ze zbioru danych.
+
+
+```{r , echo=FALSE}
+draw_table_other("machine_ord")
+```
+
+
+## Zbiór danych *skill*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("skill")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("skill")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać minimalnie niższe błędy dla metryki L<sub>1</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("skill")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędami knn dla k = 3. Niestety użycie funkcji *polr* było niemożliwe bez usuwania dodatkowych oprócz liniowo zależnych kolumn ze zbioru danych.
+
+
+```{r , echo=FALSE}
+draw_table_other("skill")
+```
+
+
+## Zbiór danych *stock_ord*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Dla wszytskich funkcji wykresy te rosną łagodniej niż w innych zbiorach. Najlepsze wyniki daje funkcja *srednia_wazona*
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("stock_ord")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmniejszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. W tym przypadku widać że wszystkie metryki osiągają podobne wartości. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+
+```{r , echo=FALSE}
+draw_plots_MAD("stock_ord")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmniejszym błędem średniokwadratowym i najłagodniejszym wzrostem w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Błąd wzrasta łagodniej niż w przypadku pozostałych zbiorów. W tym przypadku widać że można zaobserwować niższe błędy dla metryki L<sub>1</sub>, trochę wieksze dla L<sub>2</sub> i największe dla L<sub>$\infty$</sub>. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("stock_ord")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędami knn dla k = 3. Niestety użycie funkcji *polr* dała najgorsze wyniki, gorsze od funkcji knn.
+
+
+```{r , echo=FALSE}
+draw_table_other("stock_ord")
+```
+
+
+## Zbiór danych *winequality-red*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najlepsze wyniki dała funkcja *srednia_wazona*.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("winequality-red")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>, a najlepsze dla metryki L<sub>1</sub>
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("winequality-red")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać niższe błędy dla metryki L<sub>1</sub>. W tym przypadku *moda* cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("winequality-red")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędem knn dla k = 3 dla agregacji *srednia_wazona*. Niestety użycie funkcji *polr* dało najgorsze wyniki porównywalne z knn dla dużego k.
+
+
+```{r , echo=FALSE}
+draw_table_other("winequality-red")
+```
+
+
+## Zbiór danych *winequality-white*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("winequality-white")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najgorsze wyniki zostały uzyskane dla metryki L<sub>$\infty$</sub>, a najlepsze dla metryki L<sub>1</sub>
+  
+
+```{r , echo=FALSE}
+draw_plots_MAD("winequality-white")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku widać niższe błędy dla metryki L<sub>1</sub>. W tym przypadku *moda* cechuje się największym błędem średniokwadratowym.
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("winequality-white")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy funkcji *svm* są porównywalne z błędem knn dla k = 3. Niestety użycie funkcji *polr* dało najgorsze wyniki porównywalne z knn dla dużego k.
+
+
+```{r , echo=FALSE}
+draw_table_other("winequality-white")
+```
+
+
+## Zbiór danych *wisconsin_breast_ord*
+Poniżej znajdują się wykresy obrazujące nastepujące dane:
+
+  +  **ERR** - proporcję błędnej klasyfikacji
+     
+     
+     Na poniższych wykresach widzimy że błąd ERR zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. Najlepsze wyniki daje funkcja *moda*.
+     
+  
+
+```{r , echo=FALSE}
+draw_plots_ERR("wisconsin_breast_ord")
+```
+    
+    
+     
+    
+  +  **MAD** - błąd bezwzględny
+  
+  
+     Na poniższych wykresach widzimy że błąd MAD zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem bezwzględnych w tym przypadku cechuje się funkcja *srednia_wazona*. Najmniejszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3.
+  
+
+
+```{r , echo=FALSE}
+draw_plots_MAD("wisconsin_breast_ord")
+```
+    
+    
+     
+     
+     
+  +  **MSE** - błąd średniokwadratowy
+  
+  
+     Na poniższych wykresach widzimy że błąd MSE zachowuje się w podoby sposób dla wszystkich funkcji agregujących. Ciekawe jest to że najmnijeszym błędem średniokwadratowym w tym przypadku cechuje się funkcja *srednia_wazona*. Najmnijeszy błąd osiągany jest przy k = 1, a następnie błąd wzrasta wraz z wzrostem k. Najgwałtowniejszy wzrost można zaobserwować dla k od 1 do 3. W tym przypadku moda cechuje się największym błędem średniokwadratowym.
+  
+  
+
+```{r , echo=FALSE}
+draw_plots_MSE("wisconsin_breast_ord")
+```
+    
+
+Oraz tabela pokazująca te same błędy dla metod bibliotecznych
+
+
+Dla tego zbioru danych można zaobserwować że najlepiej radzi sobie funkcja *randomForest* z najmniejszymi wszystkimi błędami. Błąd ERR tej funkcji jest porownywalny z błędem 1-nn. Błędy ERR pozostałych funkcji są porownywalne z błędami knn dla k > 3. Błędy funkcji *svm* są porównywalne z błędem knn dla k = 3. Niestety użycie funkcji *polr* dało najgorsze wyniki porównywalne z knn dla dużego k.
+
+
+```{r , echo=FALSE}
+draw_table_other("wisconsin_breast_ord")
+```
+
+
+## Użycie funkcji *MASS:polr*
+Z użyciem tej funkcji na zadanych zbiorach benchmarkowych pojawił się pewien problem związany prawdopodobnie z liniową zależnością pewnych kolumn w macierzy uczącej. Problem ten został rozwiązany z pomocą użycia funkcji *WeightIt::make_full_rank*. co prawda przez takie działanie usuwane są pewne cechy opisujące przypadki, ale niestety jest to konieczne do poprawnego działania funkcji *MASS:polr*.
+
+## Ogólny opis wyników
+Po przeprowadzeniu wszystkich pomiarów, zobrazowaniu ich na różnorakich tabelach można zaobserwować pewne łączące zależności między parametrami uzycia funkcji knn do otrzymanych wyników. Oto one:
+
++ Największa dokładność osiągana jest dla k = 1 w funkcji knn
+
+  Wynikać to może z faktu że nie zawsze inni najbliźsi sąsiedzi należą do dobrej grupy, kompletnie inna budowa zbiorów testowych i uczących również może zmienić tę zależność.
+  
++ W niewielu przypadkach użycie metryki L<sub>$\infty$</sub> poprawia wyniki, w większości przypadków lepiej jest użyć metryki L<sub>1</sub>
+
++ W większośći przypadków funkcja agregująca *moda* daje najwększe błędy średniokwadratowe.
+
++ W większości przypadków funkcja agregująca *srednia_wazona* daje najmniejsze błędy średniokwadratowe.
+
+  Wynika to z tego że na wybranie etykiety najbardziej wpływa najbliższy sąsiad, który jak widać po pierwszej kropce jest najbardziej prawdopodobnym dobrym wyborem.
+
++ Funkcja biblioteczna *randomForest* daje najlepsze wyniki bliskie pod względem ilości pomylonych etykiet (ERR) do 1-nn oraz dużo lepsze przybliżenie tych które nie zostały dokładnie trafione błędy (MAD i MSE)
+
++ Funkcja biblioteczna *e1071::svm* daje znacznie gorsze wyniki niż *randomForest*, ale przeważnie lepsze wyniki niż *MASS::polr*
+
+
+## Podsumowanie
+Funkcja autorska **knn** będąca przedmiotem rozważań tego raportu cechuje się małą skutecznością dla dużej ilości wybranych najbliższych sąsiadów. O dziwo najlepsze efekty daje po prostu wybranie najbliższego sąsiada i uzycie jego etykiety jako etykiety przedmiotu badanego. Istnieją metody biblioteczne takie jak *randomForest::randomForest* które cechują się podobnym współczynnikiem dobrze odgadniętych oraz błędami bezwzględnymi i średniokwadratowymi co knn dla k = 1.
